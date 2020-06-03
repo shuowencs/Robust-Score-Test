@@ -1,4 +1,4 @@
-5/20/2020 Shuowen Chen and Hiroaki Kaido
+6/3/2020 Shuowen Chen and Hiroaki Kaido
 
 This readme file describes the matlab code for project "Robust Score Test for Incomplete Models with Nuisance Parameters". 
 
@@ -15,18 +15,15 @@ We first generate data. Under the null, model is complete (checking the size pro
 Function file that implements this: data_generation.m
 
 # 2. Estimate the nuisance parameter
-The test statistic requires a plugged-in estimand of nuisance parameter. The function file that implement this estimation (under the null that beta=0) is rmle.m. In small sample the estimand can be NA, and for these cases I use steepest ascent as an alternative. The code is in the rmle2.m. I commented their performances and issues in the debugging.m program. 
+The test statistic requires a plugged-in estimand of nuisance parameter. The function file that implement this estimation (under the null that beta=0) is rmle.m. We consider three score-based algorithms: BHHH, BFGS and L-BFGS-M. For L-BFGS-M we use the code by Stephen Becker (https://github.com/stephenbeckr/L-BFGS-B-C). We prefer L-BFGS-M since it features better performance in our finite sample simulations. 
 
 Auxiliary functions:
    counting.m: counts the number of occurrence of x (covariates) and s (outcomes)
    compute_z_all: computes analytical score vectors
+Note: to implement L-BFGS-M, need to download and compile mexfiles from Stephen Becker's GitHub website. 
    
-# 3. Constructing test statistic
-There are three functions that implements this. One is without regularization at all, while the other two feature different regularizations. 
-
-(a) stat.m: without regularization
-(b) tnDelta.m: apply regularization on the I_\delta\delta matrix
-(c) tnVar.m: apply direct regularization on the orthogonalized variance covariance matrix
+# 3. Constructing the sup test statistic
+The function file is stat.m. In finite sample, we adjust the test statistic construction using Tikhonov regularization. 
 
 # 4. Size Properties
 Compute the actual size of the test statistic across different sample sizes. Data generation under the null
