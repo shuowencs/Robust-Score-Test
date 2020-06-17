@@ -1,11 +1,11 @@
-% 1/28/2020 Shuowen Chen and Hiroaki Kaido
+% 5/28/2020 Shuowen Chen and Hiroaki Kaido
 % The function computes the analytical z_delta and z_beta, an ingredient of
 % the scores. Note the outputs are conditional on the value of x. 
 function [z_delta, z_beta] = compute_z_all(beta, x, delta)
 % Input: 
 %  beta:   structural parameter of interest (1 by 2 vector)
 %  x:      Covariates (4 by 2) [1,1; 1,-1; -1,1; -1,-1].
-%  delta:  nuisance parameter (1 by 2)
+%  delta:  nuisance parameter (2 by 1)
 %
 % Output: 
 %  z_delta: a 2 by 16 matrix with the following form
@@ -18,7 +18,7 @@ function [z_delta, z_beta] = compute_z_all(beta, x, delta)
 %                 (0, 0) (1, 1) (1, 0) (0, 1)| (0, 0) ... (0, 1)
 %           beta1                            |
 %           beta2                            |
-
+delta = delta';
 % All of the following variables are 4 by 2. 
 xdelta = x.*delta;
 phi = normpdf(xdelta);

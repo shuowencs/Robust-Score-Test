@@ -41,11 +41,11 @@ N = [200, 500, 1000, 2000, 5000, 10000]; % six different sample sizes
 S = 5000; % number of simulations for each sample size
 % pre-allocation
 %delta_BHHH = zeros(2*length(N), S);
-%delta_BFGS = zeros(2*length(N), S);
-delta_LM = zeros(2*length(N), S);
+delta_lmBFGS = zeros(2*length(N), S);
+%delta_LM = zeros(2*length(N), S);
 %est1 = zeros(2, S);
-%est2 = zeros(2, S);
-est3 = zeros(2, S);
+est2 = zeros(2, S);
+%est3 = zeros(2, S);
 %parpool(8) % for parallelization (adjust this depending on # of cores)
 for j = 1:length(N) % loop over sample sizes
     n = N(j);
@@ -56,13 +56,13 @@ for j = 1:length(N) % loop over sample sizes
     for i = 1:S 
         % Conduct Restricted MLE
         %est1(:,i) = rmle([0,0], n, 'BHHH', data_com(:,i), x1_com(:,i), x2_com(:,i));
-        %est2(:,i) = rmle([0,0], n, 'BFGS', data_com(:,i), x1_com(:,i), x2_com(:,i));
-        est3(:,i) = rmle([0,0], n, 'LM-BFGS', data_com(:,i), x1_com(:,i), x2_com(:,i));
+        est2(:,i) = rmle([0,0], n, 'LM-BFGS', data_com(:,i), x1_com(:,i), x2_com(:,i));
+        %est3(:,i) = rmle([0,0], n, 'BFGS', data_com(:,i), x1_com(:,i), x2_com(:,i));
     end
     % Store estimates
     %delta_BHHH((2*j-1):(2*j), :) = est1;
-    %delta_BFGS((2*j-1):(2*j), :) = est2;
-    delta_LM((2*j-1):(2*j), :) = est3;
+    delta_lmBFGS((2*j-1):(2*j), :) = est2;
+    %delta_LM((2*j-1):(2*j), :) = est3;
 end
 %% Checking property for results (by BHHH)
 % count number of NAs across sample sizes 
@@ -78,10 +78,10 @@ J = length(N);
 figure(1)
 for j=1:J
     subplot(J,2,2*j-1)
-    histogram(delta_BHHH(2*(j-1)+1,:),floor(2*S^(1/3)));
+    histogram(delta_lmBFGS(2*(j-1)+1,:),floor(2*S^(1/3)));
     title(['n=' num2str(N(j))])
     subplot(J,2,2*j)
-    histogram(delta_BHHH(2*j,:),floor(2*S^(1/3)));
+    histogram(delta_lmBFGS(2*j,:),floor(2*S^(1/3)));
     title(['n=' num2str(N(j))])
 end
 %% Size properties
