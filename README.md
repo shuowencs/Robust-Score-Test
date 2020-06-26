@@ -1,8 +1,12 @@
-6/3/2020 Shuowen Chen and Hiroaki Kaido
+6/25/2020 Shuowen Chen and Hiroaki Kaido
 
 This readme file describes the matlab code for project "Robust Score Test for Incomplete Models with Nuisance Parameters". 
 
-The current main program is debugging.m. The program serves two purposes:
+The main program for application is application.m. Auxiliary functions are (1) rmleapp.m: functions for first step nuisance parameter estimations; (2) statapp.m: function for computing sup test statistic (3) lhsscale.m: function that implements Latin hypercube sampling to generate multiple starting points. 
+
+Notes: to implement L-BFGS-M for the first step estimation, need to download and compile mexfiles from Stephen Becker's GitHub website. The data we use is from Kline and Tamer (2016, QE), which is available from QE website. For copyright concern we don't provide it here. 
+
+The current main program for Monte Carlo simulation is debugging.m. The program serves two purposes:
 1. Check the performance of estimated nuisance parameter
 2. Check the performance of the simulated test statstic (using either the true nuisance parameter or the first step estimand)
 
@@ -20,7 +24,6 @@ The test statistic requires a plugged-in estimand of nuisance parameter. The fun
 Auxiliary functions:
    counting.m: counts the number of occurrence of x (covariates) and s (outcomes)
    compute_z_all: computes analytical score vectors
-Note: to implement L-BFGS-M, need to download and compile mexfiles from Stephen Becker's GitHub website. 
    
 # 3. Constructing the sup test statistic
 The function file is stat.m. In finite sample, we adjust the test statistic construction using Tikhonov regularization. 
@@ -37,6 +40,5 @@ crt.m: computes the critical value of the limiting distribution of the test stat
 Compute the power of the test statistic across different sample sizes. Data generation under the alternative
 
 The main function that implements this is: powerfcn.m
-
 
 
