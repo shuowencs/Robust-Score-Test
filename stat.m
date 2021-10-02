@@ -1,13 +1,12 @@
-% 5/30/2020 Shuowen Chen and Hiroaki Kaido
-% Computes the Tn test statistics with Tikhonov regularizations
-function [Test, g_delta] = stat(delta_hat, x, occurrence, n, lambda)
+% 5/21/2020 Shuowen Chen and Hiroaki Kaido
+% Computes the Tn test statistics without regularizations
+function [Test, g_delta, varI] = stat(delta_hat, x, occurrence, n,lambda)
 % Inputs:
 %   delta_hat:  first-step estimated delta (1 by 2)
 %   x:          possible combination of covariates (k by 2)
 %   occurrence: number of occurrences of each combination of covariate and
 %               potential outcomes (4k by 1)
 %   n:          sample size
-%   lambda:     regularization parameter
 % Outputs:
 %   Test:       the sup test statistic
 %   g_delta:    gn statistic
@@ -45,12 +44,11 @@ I_delta2 = reshape(deltablock, 2, 2);
 % simulations. This causes trouble because the inverse of square root
 % contains complex numbers, and absolute value of complex numbers are real
 % numbers, which actually contaminates the test statistic. Therefore we
-% need to adjust for this. 
-% Two parts are regularized: varI and I_delta2 because the inverse of the
-% latter is an input of varI
-
-[~,D]=ldl(I_delta2); % LDL decomposition on I_delta2 
-tol = 0.005;
+% need to adjust for this. We consider regularizing the information
+% matrix to alleviate the issue.
+[~,D]=ldl(I_delta2);
+% lambda = 0.001;
+tol = 0.0025;
 if min(abs(diag(D))) < tol
     g_delta = Cbeta -  I_cross*(tikhonov(I_delta2,Cdelta,lambda));
     temp = I_cross';
@@ -63,16 +61,40 @@ else
 end
 
 [LI,DI] = ldl(varI);
-DI(DI<tol) = tol; % truncate negative values
+% DI(DI<tol) = tol; % truncate negative values
 
 if min(abs(diag(DI))) <= tol
-    Test = max(abs(tikhonov(LI*DI^(0.5),g_delta,lambda)));
+    gtilde = tikhonov(LI*DI^(0.5),g_delta,lambda);
+    Test = gtilde'*gtilde;
+    Vmin = @(x) quadform_tikhonov(LI*DI^(0.5),g_delta-x,lambda);
+    [xstar,Vstar] =  fmincon(Vmin,[0;0],eye(2),zeros(2,1));
+    Test = Test - Vstar;
+%     Vhat = LI*DI^(0.5);
+%     reg = 1;
+% temp = isreal(varI^(-0.5));
 else
-    Test = max(abs(varI^(-0.5)*g_delta));
+    gtilde = varI^(-0.5)*g_delta;
+    Test = gtilde'*gtilde;
+    Vmin = @(x) quadform(varI,g_delta-x);
+    [xstar,Vstar] = fmincon(Vmin,[0;0],eye(2),zeros(2,1));
+    Test = Test - Vstar;
+%     Vhat = varI;
+%     reg = 0;
 end
+
+
 end
-% Auxiliary function: Tikhonov regularization
+
 function reg_sol = tikhonov(A,b,lambda)
     db = length(b);
     reg_sol = lsqr([A;lambda*eye(db)],[b;zeros(db,1)],[],1000);
+end
+
+function t = quadform_tikhonov(A,g,lambda)
+    t = tikhonov(A,g,lambda)'*tikhonov(A,g,lambda);
+end
+
+function t = quadform(A,g)
+    gtilde = A^(-0.5)*g;
+    t = gtilde'*gtilde;
 end

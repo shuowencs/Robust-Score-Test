@@ -1,24 +1,20 @@
-% 6/25/2020 Shuowen Chen and Hiroaki Kaido
-% Computes the Tn test statistics in application
-% The I_delta2 and varI are well behaved so that regularization is not
-% needed
-function Test = statapp(delta_hat, data, x1, x2)
+% 8/25/2021 Shuowen Chen and Hiroaki Kaido
+% Computes the test statistic in application
+function [Test, g_delta, varI, h, Vstar] = statapp(delta_hat, data, x1, x2)
 % inputs:
 %   delta_hat:  first-step estimated delta
 %   data:       market outcomes   
 %   x1:         covariates of player 1, same definition for x2 (n by d)
-%   lambda:     regularization parameter 
-% outputs:
-%   Test: sup test statstics
-
+% output:
+%   Test:       test statstic
+n = size(data, 1); % sample size
 [zdelta, zbeta] = compute_z_allapp([0, 0], delta_hat);
 outcome = count(data, x1, x2);
-Cbeta = zbeta * outcome / sqrt(size(data, 1));
-Cdelta = zdelta * outcome / sqrt(size(data, 1));
+Cbeta = zbeta * outcome / sqrt(n);
+Cdelta = zdelta * outcome / sqrt(n);
 % Compute the outer product approximation of information matrix and
 % decomposed to four parts for orthogonalization
-% I_beta2 is 2 by 2; I_betadelta and I_deltabeta are 2 by 6 (6 by 2),
-% and I_delta2 is 6 by 6. 
+% I_beta2 is 2 by 2; I_betadelta is 2 by 6, and I_delta2 is 6 by 6. 
 
 % The following is intermediate for I_beta2. Dim is 4 by 64, where 64
 % denotes all possible combinations of market outcome and covariates
@@ -45,29 +41,27 @@ for i = 1:2
 end
 
 % Muliply by outcome of each combination
-betablock = betablock * outcome / size(data, 1);
-deltablock = deltablock * outcome / size(data, 1);
-crossblock = crossblock * outcome / size(data, 1);
+betablock = betablock * outcome / n;
+deltablock = deltablock * outcome / n;
+crossblock = crossblock * outcome / n;
 
 % Reshape
 I_beta2 = reshape(betablock, 2, 2)'; % 2 by 2
 I_delta2 = reshape(deltablock, 6, 6)'; % 6 by 6
 I_betadelta = reshape(crossblock, 6, 2)'; % 2 by 6
 
-% Check if I_delta2 is well behaved
-% tol = 0.005;
-% [~,D]=ldl(I_delta2);
-% min(abs(diag(D))) > tol, hence no need to regularize
+% Regularization (barely matters for this application)
+I_delta2 = get_sigmatilde(I_delta2); 
+g_delta = Cbeta -  I_betadelta/I_delta2 * Cdelta;
+varI = I_beta2 - I_betadelta/I_delta2 * I_betadelta';
+varI = get_sigmatilde(varI); 
 
-% Check if varI is well behaved
-% [LI,DI] = ldl(varI);
-% DI has no negative values, and min(abs(diag(DI))) > tol, no need for
-% regularization
-
-% Calculate the sup statistics
-g_delta = Cbeta -  I_betadelta/I_delta2*Cdelta;
-varI = I_beta2 - I_betadelta/I_delta2*I_betadelta';
-Test = max(abs(varI^(-0.5)*g_delta));
+% Compute the test statistic
+gtilde = varI^(-0.5)*g_delta;
+Test = gtilde'*gtilde;
+Vmin = @(x) quadform(varI, g_delta-x);
+[h, Vstar] = fmincon(Vmin, [-0.5; -0.5], eye(2), zeros(2, 1)); % solve the quadratic equation in the statistic
+Test = Test - Vstar;
 end
 
 % Auxiliary functions
@@ -84,6 +78,7 @@ for i = 0 : 63
     output(i+1) = sum(temp == i);
 end
 end
+
 % 2. Compute scores for each combination
 function [z_delta, z_beta] = compute_z_allapp(beta, delta)
 % Inputs: 
@@ -255,3 +250,23 @@ z_delta(4:end,1:16) = repelem(zdelta2_00', 1, 4);
 z_delta(1:3,49:end) = repelem(zdelta1_11', 1, 4);
 z_delta(4:end,49:end) = repelem(zdelta2_11', 1, 4);
 end
+
+% 3. Regularization using Andrews and Barwick
+function SigmaTilde = get_sigmatilde(Sigma)
+% Inputs
+% Sigma: Covariance matrix
+% Output
+% SigmaTilde: Regularized covariance matrix based on Andrews and Barwick
+sh_param = 0.05; 
+sigma = sqrt(diag(Sigma));
+Omega = Sigma./(sigma*sigma');
+D = diag(diag(Sigma));
+SigmaTilde = Sigma + max(sh_param-det(Omega), 0).*D;
+end
+
+% 4. Define quadratic form
+function t = quadform(A, g)
+gtilde = A^(-0.5)*g;
+t = gtilde'*gtilde;
+end
+
